@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat {{ chat.id }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+</head>
+<body>
+<textarea id="chat-log" cols="100" rows="20" readonly>{% for message in chat.messages.all %}
+{{ message.sender.username }} - {{ message.text }}{% endfor %}
+</textarea>
+<br>
+<input id="chat-message-input" type="text" size="100">
+<br>
+<input id="chat-message-submit" type="button" value="Send">
+{{ chat.id|json_script:"chat-id" }}
+{{ chat_type|json_script:"chat-type" }}
+<script>
+    const chatType = JSON.parse(document.getElementById('chat-type').textContent);
+    const roomID = JSON.parse(document.getElementById('chat-id').textContent);
+
+    const chatSocket = new WebSocket(
+        'ws://'
+        + window.location.host
+        + '/ws/'
+        + chatType
+        + '/'
+        + roomID
+        + '/'
+    );
+
+    chatSocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        console.log(data)
+        document.querySelector('#chat-log').value += (data.sender + ' - ' + data.message + '\n');
+    };
+
+    chatSocket.onclose = function (e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+
+    document.querySelector('#chat-message-input').focus();
+    document.querySelector('#chat-message-input').onkeyup = function (e) {
+        if (e.key === 'Enter') {  // enter, return
+            document.querySelector('#chat-message-submit').click();
+        }
+    };
+
+    document.querySelector('#chat-message-submit').onclick = function (e) {
+        const messageInputDom = document.querySelector('#chat-message-input');
+        const message = messageInputDom.value;
+
+        if (message.trim().length != 0) {
+            chatSocket.send(JSON.stringify({
+                'method': 'send',
+                'message': message,
+            }))
+            ;
+            messageInputDom.value = '';
+            messageInputDom.focus();
+        } else {
+            alert("Message cannot be blank");
+            messageInputDom.focus();
+        }
+    };
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
+        crossorigin="anonymous"></script>
+</body>
+</html>
