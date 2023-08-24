@@ -43,7 +43,7 @@ class ChatConsumer(WebsocketConsumer):
     def receive(self, text_data):
         text_data_json = json.loads(text_data)
         method = text_data_json['method']
-        print('Receive method: ')
+        print(f'Receive method: {method}')
 
         func = self.methods[method]
         func(text_data_json)

@@ -7,7 +7,7 @@ from .scripts import *
 
 class ChatDetail(LoginRequiredMixin, DetailView):
     context_object_name = 'chat'
-    template_name = 'index.html'
+    template_name = 'chat/index.html'
 
     def get_object(self, queryset=None):
         chat_name = self.kwargs.get('chat_name')
