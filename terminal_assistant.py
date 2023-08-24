@@ -6,7 +6,6 @@ from django.db import connection
 
 # from terminal_assistant import *
 
-
 def time_of_function(function):
     def wrapped(*args):
         start_time = time.perf_counter_ns()

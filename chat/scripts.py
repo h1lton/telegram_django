@@ -10,12 +10,12 @@ def get_chat(chat_name, user):
     """
     url_user = User.objects.filter(username=chat_name)
     if url_user:
-        chat = PrivateChat.objects.filter(users__in=[url_user[0], user])
+        chat = PrivateChat.objects.filter(users=url_user[0]).filter(users=user)
         if chat:
-            return chat[0], 'private'
+            return chat[0]
         else:
             chat = PrivateChat.objects.create()
             chat.users.add(url_user[0], user)
-            return chat, 'private'
+            return chat
     else:
-        return get_object_or_404(PublicChat, name=chat_name), 'public'
+        return PublicChat.objects.get(name=chat_name)
