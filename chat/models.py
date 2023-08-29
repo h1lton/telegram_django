@@ -46,3 +46,7 @@ class PublicChat(models.Model):
     users = models.ManyToManyField(User, related_name='public_chat_users')
     admins = models.ManyToManyField(User, related_name='admins')
     messages = GenericRelation(Message, object_id_field='chat_id', content_type_field='chat_type')
+
+    def is_admin(self, user):
+        return self.admins.filter(id=user.id).exists()
+    

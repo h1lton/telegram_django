@@ -4,6 +4,10 @@ const chatLog = document.querySelector('#chat-log');
 const messageInput = document.querySelector('#chat-message-input');
 const submitButton = document.querySelector('#submit-button');
 const chatInputDiv = document.querySelector('#chat-input');
+let publicChatType = null; // канал или группа
+let userIsAdmin = null;
+let isLoadingStatus = true; // загрузка страницы
+
 
 const chatSocket = new WebSocket(
     'ws://'
@@ -19,17 +23,25 @@ chatSocket.onmessage = function (e) {
     const data = JSON.parse(e.data);
     console.log(data);
     switch (data.method) {
+        case 'initialize':
+            console.log('Loading...')
+            userIsAdmin = data['is_admin'];
+            publicChatType = data['chat_type'];
+            if (publicChatType === 1 && !userIsAdmin) { // если чат это channel и пользователь не админ, то удаляем ему поле ввода сообщения, в противном случае оставляем все как есть
+                messageInput.remove();
+                submitButton.remove();
+            }
+            isLoadingStatus = false; // убираем загрузку страницы
+            console.log('Loading success')
+            break
         case 'add_message':
             const div = document.createElement('div');
             div.className = 'message-div';
             div.textContent = `${data.message.sender} - ${data.message.text}`;
             div.id = `message_${data.message.id}`;
-            const btn = document.createElement('button');
-            btn.onclick = () => deleteMessage(data.message.id);
-            btn.textContent = 'Delete message';
-            div.append(btn);
+            createButtons(div, data.messageId);
             chatLog.append(div);
-            console.log('method work');
+            console.log('add message');
             break;
         case 'delete_message':
             const messageDiv = document.getElementById(`message_${data.message_id}`);
@@ -57,6 +69,11 @@ messageInput.onkeyup = function (e) {
 };
 
 submitButtonOnClick = (e) => {
+    if (publicChatType == 1 && !userIsAdmin) {
+        console.log('сообщения добавлять может только админ')
+        return
+    }
+
     if (messageInput.value.trim().length === 0) {
         alert("Message cannot be blank");
         messageInput.focus();
@@ -85,7 +102,28 @@ submitButtonOnClick = (e) => {
     messageInput.focus();
 };
 
+const createButtons = (div, messageId) => { // создает и помещает кнопки Delete и Edit в переданный div
+    if (!userIsAdmin) {
+        return
+    } 
+    const deleteBtn = document.createElement('button');
+    deleteBtn.onclick = () => deleteMessage(messageId);
+    deleteBtn.textContent = 'Delete message';
+
+    const editBtn = document.createElement('button');
+    editBtn.onclick = () => editMessageOnClick(messageId);
+    editBtn.textContent = 'Delete message';
+
+    div.append(editBtn)
+    div.append(deleteBtn);
+}
+
+
 const deleteMessage = (messageId) => {
+    if (publicChatType == 1 && !userIsAdmin) {
+        console.log('сообщения удалять может только админ')
+        return
+    }
     chatSocket.send(JSON.stringify({
         'method': 'delete_message',
         'message_id': messageId,
@@ -93,6 +131,10 @@ const deleteMessage = (messageId) => {
 };
 
 const editMessageOnClick = (messageId) => {
+    if (publicChatType == 1 && !userIsAdmin) {
+        console.log('сообщения редактировать может только админ')
+        return
+    }
     console.log('editMessageOnClick');
     const label = document.createElement('label');
     label.for = 'chat-message-input';

@@ -23,4 +23,5 @@ class ChatDetail(LoginRequiredMixin, DetailView):
         chat = self.get_object()
         context['messages'] = chat.messages.order_by('time_create')[:30]
         context['chat_type'] = 'private' if chat.__class__.__name__ == 'PrivateChat' else 'public'
+        context['user'] = self.request.user
         return context
