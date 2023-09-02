@@ -1,9 +1,13 @@
 const chatType = JSON.parse(document.getElementById('chat-type').textContent);
 const roomID = JSON.parse(document.getElementById('chat-id').textContent);
-const chatLog = document.querySelector('#chat-log');
-const messageInput = document.querySelector('#chat-message-input');
-const submitButton = document.querySelector('#submit-button');
-const chatInputDiv = document.querySelector('#chat-input');
+const userUsername = JSON.parse(document.getElementById('user-username').textContent);
+const chat = document.querySelector('.chat-wrapper');
+const messageInput = document.querySelector('.chat-input');
+const submitButton = document.querySelector('.chat-send-btn');
+const chatInputDiv = document.querySelector('.chat-input-wrapper');
+let editMessageID = null
+
+chat.scrollTo(0, chat.scrollHeight)
 
 const chatSocket = new WebSocket(
     'ws://'
@@ -17,27 +21,70 @@ const chatSocket = new WebSocket(
 
 chatSocket.onmessage = function (e) {
     const data = JSON.parse(e.data);
-    console.log(data);
+    const messageDiv = document.getElementById(`message_${data.message_id}`);
     switch (data.method) {
         case 'add_message':
-            const div = document.createElement('div');
-            div.className = 'message-div';
-            div.textContent = `${data.message.sender} - ${data.message.text}`;
-            div.id = `message_${data.message.id}`;
-            const btn = document.createElement('button');
-            btn.onclick = () => deleteMessage(data.message.id);
-            btn.textContent = 'Delete message';
-            div.append(btn);
-            chatLog.append(div);
-            console.log('method work');
+            const messageWrapper = document.createElement('div');
+            messageWrapper.id = `message_${data.message.id}`
+            messageWrapper.className = 'message-wrapper';
+
+            const img = document.createElement('img');
+            img.className = 'message-pp';
+            img.alt = 'profile-pic';
+
+            const messageEditDel = document.createElement('div');
+            messageEditDel.className = 'message-edit-del'
+            if (data.message.sender === userUsername) {
+                messageWrapper.className += ' reverse'
+                img.src = 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=2550&q=80';
+                const editSpan = document.createElement('span');
+                editSpan.onclick = () => editMessageOnClick(data.message.id);
+                editSpan.textContent = 'edit '
+                messageEditDel.appendChild(editSpan)
+            } else {
+                img.src = 'https://images.unsplash.com/photo-1587080266227-677cc2a4e76e?ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=934&amp;q=80'
+            }
+
+            messageWrapper.appendChild(img)
+            const messageBoxWrapper = document.createElement('div');
+
+            messageBoxWrapper.className = 'message-box-wrapper'
+            const messageBox = document.createElement('div');
+            messageBox.className = 'message-box'
+
+            messageBox.textContent = data.message.text
+
+            messageBoxWrapper.appendChild(messageBox)
+            const divTime = document.createElement('div');
+            divTime.style.userSelect = 'none'
+
+            const spanEdited = document.createElement('span');
+            spanEdited.hidden = true
+            spanEdited.textContent = 'edited '
+            divTime.appendChild(spanEdited)
+
+            const spanTime = document.createElement('span');
+            spanTime.textContent = data.message.time_create
+            divTime.appendChild(spanTime)
+
+            messageBoxWrapper.appendChild(divTime)
+
+            const delSpan = document.createElement('span');
+            delSpan.onclick = () => deleteMessage(data.message.id);
+            delSpan.textContent = 'delete'
+            messageEditDel.appendChild(delSpan)
+
+            messageBoxWrapper.appendChild(messageEditDel)
+            messageWrapper.appendChild(messageBoxWrapper)
+            chat.appendChild(messageWrapper)
+            chat.scrollTo(0, chat.scrollHeight)
             break;
         case 'delete_message':
-            const messageDiv = document.getElementById(`message_${data.message_id}`);
             messageDiv.remove();
             break;
         case 'edit_message':
-            const messageSpan = document.getElementById(`message_${data.message_id}`).querySelector('span:nth-child(2)');
-            messageSpan.textContent = data.text;
+            messageDiv.querySelector("div > div.message-box").textContent = data.text;
+            messageDiv.querySelector("div > div:nth-child(2) > span:nth-child(1)").hidden = false
             break;
         default:
             console.log('Method is not provided');
@@ -57,33 +104,34 @@ messageInput.onkeyup = function (e) {
 };
 
 submitButtonOnClick = (e) => {
-    if (messageInput.value.trim().length === 0) {
-        alert("Message cannot be blank");
-        messageInput.focus();
-    }
+    if (messageInput.value.trim().length === 0) return
 
-    const editedMessageId = submitButton.getAttribute('edit-message-id');
-
-    if (editedMessageId) {
+    if (editMessageID) {
         chatSocket.send(JSON.stringify({
             'method': 'edit_message',
-            'message_id': editedMessageId,
+            'message_id': editMessageID,
             'text': messageInput.value,
         }))
-        submitButton.removeAttribute('edit-message-id');
+        messageInput.removeEventListener('input', editMessageListener)
+        editMessageID = null
         submitButton.textContent = 'Send';
-        document.getElementById('label-for-chat-message-input').remove()
     } else {
         chatSocket.send(JSON.stringify({
             'method': 'add_message',
             'text': messageInput.value,
         }));
     }
-    ;
 
     messageInput.value = '';
     messageInput.focus();
 };
+
+clearInput = (e) => {
+    messageInput.value = ''
+    messageInput.focus();
+    editMessageID = null
+    submitButton.textContent = 'Send';
+}
 
 const deleteMessage = (messageId) => {
     chatSocket.send(JSON.stringify({
@@ -92,15 +140,15 @@ const deleteMessage = (messageId) => {
     }))
 };
 
+const editMessageListener = function () {
+    document.querySelector(`#message_${editMessageID} > div > div.message-box`).innerText = this.value;
+}
+
 const editMessageOnClick = (messageId) => {
-    console.log('editMessageOnClick');
-    const label = document.createElement('label');
-    label.for = 'chat-message-input';
-    label.id = 'label-for-chat-message-input';
-    label.textContent = 'Редактирование';
-    chatInputDiv.append(label);
-    messageInput.value = document.getElementById(`message_${messageId}`).querySelector('span:nth-child(2)').textContent;
+    editMessageID = messageId
+    messageInput.value = document.querySelector(`#message_${editMessageID} > div > div.message-box`).textContent.trim();
+
+    messageInput.addEventListener('input', editMessageListener)
     messageInput.focus();
-    submitButton.setAttribute('edit-message-id', messageId);
     submitButton.textContent = 'Edit';
 };

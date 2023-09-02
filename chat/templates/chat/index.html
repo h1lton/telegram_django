@@ -1,48 +1,29 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Chat {{ chat.id }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet"
-          integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
-</head>
-
-<div id="chat-log" style="width: 100vw">
+{% extends 'chat/base.html' %}
+{% block chat_block %}
     {% for message in messages %}
-        <div class='message-div' id="message_{{ message.id }}">
-            <span>{{ message.sender.username }}</span>
-            <span>{{ message.text }}</span>
-            {% if user.username == message.sender.username %}
-                <button onclick="deleteMessage({{ message.id }})">Delete message</button>
-                <button onclick="editMessageOnClick({{ message.id }})">Edit message</button>
-            {% endif %}
+        <div id="message_{{ message.id }}" class="message-wrapper{% if message.sender == user %} reverse">
+            <img class="message-pp"
+                 src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=2550&q=80"
+        {% else %}">
+            <img class="message-pp"
+                 src="https://images.unsplash.com/photo-1587080266227-677cc2a4e76e?ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&amp;ixlib=rb-1.2.1&amp;auto=format&amp;fit=crop&amp;w=934&amp;q=80"
+        {% endif %}
+                 alt="profile-pic">
+        <div class="message-box-wrapper">
+            <div class="message-box">
+                {{ message.text }}
+            </div>
+            <div style="user-select: none;">
+                <span {% if not message.is_edited %}hidden{% endif %}>edited</span>
+                <span>{{ message.time_create|date:'d.m H:i' }}</span>
+            </div>
+            <div class="message-edit-del">
+                {% if message.sender == user %}
+                    <span onclick="editMessageOnClick({{ message.id }})">edit</span>
+                {% endif %}
+                <span onclick="deleteMessage({{ message.id }})">delete</span>
+            </div>
+        </div>
         </div>
     {% endfor %}
-</div>
-<br>
-<div id="chat-input">
-    <input id="chat-message-input" type="text" size="100">
-</div>
-<br>
-<button type="button" onclick="submitButtonOnClick()" id="submit-button">Send</button>
-{{ chat.id|json_script:"chat-id" }}
-{{ chat_type|json_script:"chat-type" }}
-
-{% if chat_type == 'private' %} 
-    <script
-        src="{% static 'chat/js/script.js' %}">
-    </script>
-{% else %}
-    <script
-        src="{% static 'chat/js/public_chat_script.js' %}">
-    </script>
-{% endif %}
-
-<script
-        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
-        crossorigin="anonymous">
-</script>
-</body>
-</html>
+{% endblock %}

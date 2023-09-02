@@ -49,4 +49,3 @@ class PublicChat(models.Model):
 
     def is_admin(self, user):
         return self.admins.filter(id=user.id).exists()
-    
